@@ -1,0 +1,66 @@
+Raspberry Pi 
+pip install Flask Flask-MySQL
+
+
+#
+from flask import Flask, request, jsonify
+from flask_mysqldb import MySQL
+import RPi.GPIO as GPIO
+import time
+
+app = Flask(__name__)
+
+# Configuracion de la base de datos
+app.config['MYSQL_USER'] = 'tu_usuario'
+app.config['MYSQL_PASSWORD'] = 'tu_contrasena'
+app.config['MYSQL_DB'] = 'tu_base_de_datos'
+app.config['MYSQL_HOST'] = 'localhost'
+
+mysql = MySQL(app)
+
+channel = 21
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(channel, GPIO.OUT)
+
+def motor_on():
+    GPIO.output(channel, GPIO.HIGH)
+    time.sleep(1)  # Manten el rele activado por 1 segundo
+    GPIO.output(channel, GPIO.LOW)
+
+@app.route('/activate', methods=['POST'])
+def activate_relay():
+    cursor = mysql.connection.cursor()
+    cursor.execute("INSERT INTO activations (timestamp) VALUES (NOW())")
+    mysql.connection.commit()
+    cursor.close()
+    
+    motor_on()
+    return jsonify({'status': 'success'})
+
+@app.route('/activations', methods=['GET'])
+def get_activations():
+    cursor = mysql.connection.cursor()
+    cursor.execute("SELECT * FROM activations")
+    result = cursor.fetchall()
+    cursor.close()
+    return jsonify(result)
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
+
+
+XAMPP:
+CREATE DATABASE tu_base_de_datos;
+USE tu_base_de_datos;
+
+CREATE TABLE activations (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+
+Iniciar el servidor Flask
+python app.py
+
+Inicar con el proyecto 
+npm run dev
