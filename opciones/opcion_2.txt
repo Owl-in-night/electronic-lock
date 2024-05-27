@@ -1,0 +1,141 @@
+Instalación de django Raspberry Pi
+pip install django djangorestframework mysqlclient
+
+# -*- coding: utf-8 -*-
+import RPi.GPIO as GPIO
+import time
+from django.db import models
+from django.utils import timezone
+
+channel = 21
+
+# Configuración del GPIO
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(channel, GPIO.OUT)
+
+
+def motor_on(pin):
+    GPIO.output(pin, GPIO.HIGH)  # Encender el motor
+    time.sleep(1)  # Mantener el relé activado por 1 segundo
+    GPIO.output(pin, GPIO.LOW)  # Apagar el motor
+
+class Activation(models.Model):
+    timestamp = models.DateTimeField(default=timezone.now)
+
+if __name__ == '__main__':
+    while True:
+        dato = input("Digite algo para leer el sensor: ")
+        if dato == "z":
+            motor_on(channel)
+            # Registrar la activación en la base de datos
+            activation = Activation.objects.create()
+            print("Activación registrada:", activation.timestamp)
+        else:
+            GPIO.cleanup()
+            print("Fin de programa")
+            break
+
+
+
+Creamos el proyecto
+django-admin startproject myproject
+cd myproject
+django-admin startapp myapp
+
+Edición de settings.py
+# myproject/settings.py
+
+INSTALLED_APPS = [
+    ...
+    'rest_framework',
+    'myapp',
+]
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'tu_base_de_datos',
+        'USER': 'tu_usuario',
+        'PASSWORD': 'tu_contrasena',
+        'HOST': 'localhost',
+        'PORT': '3306',
+    }
+}
+
+
+Módulo para almacenar las activaciones:
+# myapp/models.py
+
+from django.db import models
+
+class Activation(models.Model):
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+
+Creación de la vista:
+# myapp/serializers.py
+
+from rest_framework import serializers
+from .models import Activation
+
+class ActivationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Activation
+        fields = '__all__'
+
+# myapp/views.py
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from .models import Activation
+from .serializers import ActivationSerializer
+import RPi.GPIO as GPIO
+import time
+
+channel = 21
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(channel, GPIO.OUT)
+
+class ActivateRelay(APIView):
+    def post(self, request):
+        GPIO.output(channel, GPIO.HIGH)
+        time.sleep(1)  # Mantén el relé activado por 1 segundo
+        GPIO.output(channel, GPIO.LOW)
+        activation = Activation.objects.create()
+        serializer = ActivationSerializer(activation)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+class ListActivations(APIView):
+    def get(self, request):
+        activations = Activation.objects.all()
+        serializer = ActivationSerializer(activations, many=True)
+        return Response(serializer.data)
+
+
+Configuración de urls para las vistas
+# myapp/urls.py
+
+from django.urls import path
+from .views import ActivateRelay, ListActivations
+
+urlpatterns = [
+    path('activate/', ActivateRelay.as_view(), name='activate'),
+    path('activations/', ListActivations.as_view(), name='activations'),
+]
+
+# myproject/urls.py
+
+from django.contrib import admin
+from django.urls import path, include
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('api/', include('myapp.urls')),
+]
+
+Migración y ejecución del servidor Django
+python manage.py makemigrations
+python manage.py migrate
+python manage.py runserver
+

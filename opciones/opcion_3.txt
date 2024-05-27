@@ -1,0 +1,129 @@
+FastAPI
+pip install fastapi uvicorn mysqlclient sqlalchemy
+
+# -*- coding: utf-8 -*-
+import RPi.GPIO as GPIO
+import time
+from sqlalchemy import create_engine, Column, Integer, DateTime
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+from datetime import datetime
+
+# Configuración del GPIO
+channel = 21
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(channel, GPIO.OUT)
+
+# Configuración de la base de datos
+DATABASE_URL = "mysql://tu_usuario:tu_contrasena@localhost/tu_base_de_datos"
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
+
+# Definición del modelo de activación
+class Activation(Base):
+    __tablename__ = 'activations'
+    id = Column(Integer, primary_key=True, index=True)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+
+Base.metadata.create_all(bind=engine)
+
+# Configuración de la aplicación FastAPI
+app = FastAPI()
+
+# Función para activar el motor
+def motor_on(pin):
+    GPIO.output(pin, GPIO.HIGH)  # Encender el motor
+    time.sleep(1)  # Mantener el relé activado por 1 segundo
+    GPIO.output(pin, GPIO.LOW)  # Apagar el motor
+
+# Ruta para activar el relé y registrar la activación
+@app.post("/activate")
+def activate_relay():
+    motor_on(channel)  # Activar el motor
+    
+    # Registrar la activación en la base de datos
+    db = SessionLocal()
+    activation = Activation()
+    db.add(activation)
+    db.commit()
+    db.close()
+    
+    # Respuesta JSON con los detalles de la activación
+    return JSONResponse(status_code=201, content={"id": activation.id, "timestamp": activation.timestamp.isoformat()})
+
+# Código de inicio del programa
+if __name__ == "__main__":
+    while True:
+        dato = input("Digite algo para leer el sensor: ")
+        if dato == "z":
+            motor_on(channel)  # Activar el motor
+            print("Motor activado")
+        else:
+            GPIO.cleanup()
+            print("Fin de programa")
+            break
+
+
+# main.py
+
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+from sqlalchemy import create_engine, Column, Integer, DateTime
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+import RPi.GPIO as GPIO
+import time
+from datetime import datetime
+
+DATABASE_URL = "mysql://tu_usuario:tu_contrasena@localhost/tu_base_de_datos"
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
+
+app = FastAPI()
+
+class Activation(Base):
+    __tablename__ = 'activations'
+    id = Column(Integer, primary_key=True, index=True)
+    timestamp = Column(DateTime, default=datetime.utcnow)
+
+Base.metadata.create_all(bind=engine)
+
+channel = 21
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(channel, GPIO.OUT)
+
+@app.post("/activate")
+def activate_relay():
+    GPIO.output(channel, GPIO.HIGH)
+    time.sleep(1)  # Mantén el relé activado por 1 segundo
+    GPIO.output(channel, GPIO.LOW)
+
+    db = SessionLocal()
+    activation = Activation()
+    db.add(activation)
+    db.commit()
+    db.refresh(activation)
+    db.close()
+
+    return JSONResponse(status_code=201, content={"id": activation.id, "timestamp": activation.timestamp.isoformat()})
+
+@app.get("/activations")
+def get_activations():
+    db = SessionLocal()
+    activations = db.query(Activation).all()
+    db.close()
+    return activations
+
+
+
+Ejecuta el servidor
+uvicorn main:app --host 0.0.0.0 --port 8000
+
+
+
+
+
