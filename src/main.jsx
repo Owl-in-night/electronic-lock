@@ -13,6 +13,5 @@ root.render(
     <QueryClientProvider client={queryClient}>
       <App />
     </QueryClientProvider>
-  </BrowserRouter>,
-  document.getElementById('root')
+  </BrowserRouter>
 )

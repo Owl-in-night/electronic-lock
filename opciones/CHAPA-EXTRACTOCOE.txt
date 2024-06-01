@@ -1,0 +1,29 @@
+def lucesBService(led_pinB,button_pin,id):
+    if id == "3":
+        # GPIO setup
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(led_pinB, GPIO.OUT)
+        GPIO.setup(button_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+        try:
+        # Mantener el programa en ejecución
+            while True:
+        # Verificar si se presiona el botón
+                if GPIO.input(button_pin) == GPIO.HIGH:
+            # Cambiar el estado del LED
+                    GPIO.output(led_pin, not GPIO.input(led_pin))
+            # Esperar un momento para evitar rebotes
+                    time.sleep(0.2)
+                    return jsonify({
+                        'id': 3,
+                        'led-status': "on",
+                        'button-status': "on"
+                    })
+                else:
+                    return jsonify({
+                        'id': 3,
+                        'led-status': "off",
+                        'button-status': "off"
+                    })
+        except KeyboardInterrupt:
+        # Limpiar los pines GPIO y terminar el programa
+            GPIO.cleanup()

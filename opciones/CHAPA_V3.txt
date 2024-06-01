@@ -1,0 +1,42 @@
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+import RPi.GPIO as GPIO
+import time
+
+app = Flask(__name__)
+CORS(app)  # Habilitar CORS para todas las rutas
+
+
+chapa = 21
+# GPIO setup
+
+#rele
+def releService(channel,id):
+    if id == "1":
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(channel, GPIO.OUT)
+        GPIO.output(channel, GPIO.HIGH)  # Turn motor on
+        time.sleep(3/4)
+        GPIO.cleanup()
+        return jsonify({
+            'id': 1,
+            'status': "on"
+        })
+    else:
+        GPIO.cleanup()
+        return jsonify({
+            'id': 2,
+            'status': "off"
+        })
+
+@app.route('/lab/<service>/<id>')
+def labController( service, id):
+    if service == "chapa":
+        return ""
+    elif service == "luz":
+        return releService(chapa, id)
+    else:
+        return ""
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
+

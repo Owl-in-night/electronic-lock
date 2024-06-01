@@ -1,0 +1,65 @@
+Estos comandos desde la terminal
+sudo apt update
+sudo apt install nodejs npm
+sudo npm install -g n
+sudo n stable
+sudo n latest
+node -v
+npm -v
+pip3 install flask --break-system-packages
+sudo ufw status
+sudo apt update
+sudo apt install ufw
+sudo ufw allow 5000
+pip3 install flask-cors --break-system-packages
+
+
+Código de pruebas
+from flask import Flask,request, jsonify
+from flask_cors import CORS
+
+app = Flask(__name__) 
+CORS(app)  # Habilitar COR,S para todas las rutas
+
+@app.route('/tests')
+def tests():
+    return jsonify({
+        'tests': 1,
+        'tests_2': "Hola"
+    })    
+    # Tu lgica para medir la distancia
+    #pass
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
+
+
+
+#CON ID
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+
+app = Flask(__name__)
+CORS(app)  # Habilitar CORS para todas las rutas
+
+@app.route('/tests/<id>')
+def tests(id):
+    if id == "1":
+        return jsonify({
+            'tests': 1,
+            'tests_2': "Hola"
+        })
+    else:
+        return jsonify({
+            'tests': 2,
+            'tests_2': "Hola2"
+        })
+
+    # Tu logica para medir la distancia
+    # pass
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
+
+
+
